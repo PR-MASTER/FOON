@@ -1,1 +1,1 @@
-{"private":true,"dependencies":{"ws":"^8.18.0"}}
+{"name":"eagle-wss-mobile-relay","private":true,"version":"1.0.0","dependencies":{"ws":"^8.18.0"}}
