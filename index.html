@@ -1,0 +1,54 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Eagle Quantum Time Gate — SENDER</title><style>
+*{box-sizing:border-box}body{margin:0;background:#03040a;color:#eef7ff;font-family:system-ui,Arial,sans-serif}
+.wrap{width:min(900px,95vw);margin:auto;padding:14px}.hero{border:1px solid #29405e;border-radius:16px;overflow:hidden;background:#070b16}
+.hero img{width:100%;display:block}.hero button{margin:10px;width:calc(100% - 20px)}
+.card{background:#080c18f2;border:1px solid #293c5b;border-radius:14px;padding:13px;margin-top:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.wide{grid-column:1/-1}
+input,textarea,button{width:100%;padding:10px;border-radius:8px;border:1px solid #344b70;background:#0b1222;color:#fff;margin-top:4px}
+textarea{min-height:70px}button{font-weight:800;cursor:pointer}.primary{background:linear-gradient(90deg,#24518f,#71379a)}
+.leds{display:flex;justify-content:center;gap:38px;margin:10px}.led{width:24px;height:24px;border-radius:50%;opacity:.25}.blue{background:#158cff;box-shadow:0 0 20px #158cff}.pink{background:#ff4fca;box-shadow:0 0 20px #ff4fca}.green{background:#2cff76;box-shadow:0 0 20px #2cff76}.white{background:#fff;box-shadow:0 0 20px #fff}.on{opacity:1}.blink{animation:b .55s infinite}@keyframes b{50%{opacity:.12}}
+.status{font-size:11px;color:#9deeff;text-align:center}.log{font-size:10px;line-height:1.5;color:#aab8cc}.warn{font-size:10px;color:#ffd36d}
+@media(max-width:650px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}}
+</style></head>
+<body><main class="wrap"><section class="hero"><img src="eagle_gateway.png" alt="Eagle quantum gateway concept"><button onclick="document.querySelector('.card').scrollIntoView({behavior:'smooth'})">OPEN GATEWAY</button></section>
+<section class="card"><h2>SENDER DEVICE</h2>
+<div class="grid">
+<div><label>ROOM / CHANNEL</label><input id="room" value="EAGLE-777"></div>
+<div><label>RELAY WSS URL</label><input id="url" placeholder="wss://YOUR-RELAY-SERVER"></div>
+<div><label>DATE</label><input id="date" type="date"></div>
+<div><label>TIME</label><input id="time" type="time" step="1"></div>
+<div><label>MODE</label><select id="mode"><option>PAST</option><option selected>PRESENT</option><option>FUTURE</option></select></div>
+<div><label>LIGHT-PARTICLE PROFILE</label><select id="profile"><option>BLUE • PAST</option><option>PINK • PRESENT</option><option>GREEN • FUTURE</option></select></div>
+<textarea id="message" class="wide" placeholder="Message"></textarea>
+<button class="primary" id="connect">CONNECT NETWORK</button>
+<button id="send">TRANSMIT MESSAGE</button>
+<button id="gps">GET REAL PHONE GPS</button>
+<button id="store">DOWNLOAD XML CHAT</button>
+</div></section>
+<section class="card"><div class="leds"><i id="l" class="led blue"></i><i id="p" class="led pink on"></i><i id="r" class="led green"></i></div><div id="clock" style="text-align:center;font-size:22px">--:--:--</div><div id="status" class="status">READY</div></section>
+<section class="card"><div class="grid"><div>GPS<br><b id="gps">NOT CONNECTED</b></div><div>UNIQUE WAVE<br><b id="wave">EAGLE-777</b></div><div>NETWORK<br><b>WSS / INTERNET</b></div><div>STORE<br><b>XML</b></div></div><div id="log" class="log"></div></section>
+<section class="card warn">Real GPS and normal internet/mobile-data networking are used where available. “Light particles”, quantum frequency and past/future routing are protocol visualizations; the software does not create a quantum channel or send information through time.</section></main><script>
+const $=id=>document.getElementById(id);
+const original=new Date();let ws=null,pos=null,chat=[];
+const pad=n=>String(n).padStart(2,"0");
+function dv(d){return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate())}
+function tv(d){return pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds())}
+$("date").value=dv(original);$("time").value=tv(original);
+function freq(){let t=$("date").value+$("time").value+($("room").value||"EAGLE-777");let h=0;for(let i=0;i<t.length;i++)h=(h*31+t.charCodeAt(i))>>>0;return 300+(h%1700)}
+function tone(ok=true){let A=window.AudioContext||window.webkitAudioContext;if(!A)return;let c=new A,o=c.createOscillator(),g=c.createGain();o.frequency.value=ok?880:220;o.connect(g).connect(c.destination);g.gain.value=.035;o.start();o.stop(c.currentTime+(ok?.15:.8))}
+function led(mode,problem=false){["l","p","r"].forEach(x=>$(x).className="led "+x==="l"?"led blue":"");$("l").className="led blue";$("p").className="led pink";$("r").className="led green";if(problem){["l","p","r"].forEach(x=>$(x).className="led white blink")}else if(mode==="PAST")$("l").className="led blue on blink";else if(mode==="FUTURE")$("r").className="led green on blink";else $("p").className="led pink on")}
+function gps(){if(!navigator.geolocation){$("gps").textContent="GPS API unavailable";return}navigator.geolocation.getCurrentPosition(p=>{pos=p.coords;$("gps").textContent="GPS CONNECTED";$("gps").dataset.ok="1"},e=>{$("gps").textContent="GPS ERROR: "+e.message;led("PRESENT",true);tone(false)}, {enableHighAccuracy:true,timeout:15000,maximumAge:0})}
+$("gps").onclick=gps;
+function add(item){chat.push(item);render()}
+function render(){$("log").innerHTML=chat.slice(-30).map(x=>`<div><b>${x.side}</b> ${x.time} • ${x.mode} • ${x.frequency} Hz<br>${escapeHtml(x.message)}</div><hr>`).join("")}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+$("connect").onclick=()=>{let u=$("url").value.trim();if(!u){$("status").textContent="ENTER RELAY WSS URL";return}try{ws=new WebSocket(u)}catch(e){$("status").textContent="BAD RELAY URL";return}
+ ws.onopen=()=>{ws.send(JSON.stringify({type:"join",room:$("room").value}));$("status").textContent="NETWORK CONNECTED • ROOM "+$("room").value;tone(true)}
+ ws.onmessage=e=>{try{let m=JSON.parse(e.data);if(m.type==="chat"&&m.room===$("room").value){add(m);led(m.mode);tone(true);navigator.vibrate?.([70,50,70])}}catch(_){}}
+ ws.onclose=()=>{$("status").textContent="NETWORK DISCONNECTED"};ws.onerror=()=>{$("status").textContent="NETWORK ERROR";led("PRESENT",true)}
+};
+$("send").onclick=()=>{let d=new Date($("date").value+"T"+$("time").value),m=$("message").value.trim();if(!m)return;let packet={type:"chat",room:$("room").value,side:"SENDER",mode:$("mode").value,time:d.toISOString(),frequency:freq(),message:m,lat:pos?.latitude??null,lon:pos?.longitude??null,accuracy:pos?.accuracy??null};packet.side="SENDER";if(!ws||ws.readyState!==1){$("status").textContent="NOT CONNECTED — MESSAGE STORED LOCALLY";add(packet);led(packet.mode);return}ws.send(JSON.stringify(packet));add(packet);led(packet.mode);tone(true);navigator.vibrate?.([80,60,80]);$("message").value=""};
+$("store").onclick=()=>{let xml='<?xml version="1.0" encoding="UTF-8"?><chat room="'+escapeHtml($("room").value)+'">';for(let x of chat)xml+=`<message side="${escapeHtml(x.side)}" mode="${escapeHtml(x.mode)}" time="${escapeHtml(x.time)}" frequency="${x.frequency}" lat="${x.lat??""}" lon="${x.lon??""}" accuracy="${x.accuracy??""}">${escapeHtml(x.message)}</message>`;xml+="</chat>";let a=document.createElement("a");a.href=URL.createObjectURL(new Blob([xml],{type:"application/xml"}));a.download="eagle-chat-"+Date.now()+".xml";a.click()}
+$("profile").onchange=()=>{let v=$("profile").value;$("mode").value=v.startsWith("BLUE")?"PAST":v.startsWith("GREEN")?"FUTURE":"PRESENT";led($("mode").value)}
+function loop(){$("clock").textContent=tv(new Date());requestAnimationFrame(loop)}loop();led("PRESENT");
+</script></body></html>
